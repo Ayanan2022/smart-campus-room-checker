@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { canBook, type Booking } from '@/availability';
+import { canBook, checkRoomAvailability, type Booking } from '@/availability';
+import { ROOMS, CURRENT_TIME } from '@/rooms';
 
 const NOW = 540;
 const EXISTING: Booking[] = [{ start: 600, end: 660 }];
@@ -75,6 +76,30 @@ describe('canBook', () => {
       canBook(541, 571, NOW, false, EXISTING);
       expect(EXISTING).toEqual(snapshot);
       expect(EXISTING).toBe(EXISTING); // same reference, not replaced
+    });
+  });
+});
+
+describe('checkRoomAvailability', () => {
+  describe('room isolation', () => {
+    it('room A-101 booking (600-660) does not affect room B-204 for the same time', () => {
+      const roomA = ROOMS.find((r) => r.id === 'A-101')!;
+      const roomB = ROOMS.find((r) => r.id === 'B-204')!;
+      // 610-650 overlaps A-101's 600-660 booking -> rejected
+      expect(checkRoomAvailability(roomA, 610, 650, CURRENT_TIME).available).toBe(false);
+      // same window on B-204, whose only booking is 720-780 -> accepted
+      expect(checkRoomAvailability(roomB, 610, 650, CURRENT_TIME).available).toBe(true);
+    });
+  });
+
+  describe('blocked room is never available', () => {
+    it('room D-015 (blocked) is rejected even for a valid, free time window', () => {
+      const roomD = ROOMS.find((r) => r.id === 'D-015')!;
+      // 780-840 is within range, after now, <= 120 min, and does not overlap
+      // D-015's only booking (660-720) — but the room is blocked.
+      const result = checkRoomAvailability(roomD, 780, 840, CURRENT_TIME);
+      expect(result.available).toBe(false);
+      expect(result.reason).toBe('blocked');
     });
   });
 });

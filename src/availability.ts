@@ -1,3 +1,5 @@
+import type { Room } from '@/rooms';
+
 export interface Booking {
   start: number;
   end: number;
@@ -97,4 +99,15 @@ export function canBook(
     }
   }
   return { available: true, reason: 'available', message: 'The room is available for this time.' };
+}
+
+// Room-scoped wrapper around canBook. Uses only the given room's blocked flag
+// and bookings, so bookings of one room never affect another.
+export function checkRoomAvailability(
+  room: Room,
+  start: number,
+  end: number,
+  now: number,
+): AvailabilityResult {
+  return canBook(start, end, now, room.blocked, room.bookings);
 }
