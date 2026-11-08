@@ -2,8 +2,6 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   Clock,
   DoorOpen,
-  CheckCircle2,
-  XCircle,
   ListChecks,
   Users,
   Monitor,
@@ -19,6 +17,9 @@ import {
 } from '@/availability';
 import { ROOMS, CURRENT_TIME, ALL_EQUIPMENT, type Room } from '@/rooms';
 import { filterRooms } from '@/filters';
+import { Card } from '@/components/Card';
+import { TimeField } from '@/components/TimeField';
+import { ResultBanner } from '@/components/ResultBanner';
 
 const NOW = CURRENT_TIME;
 
@@ -66,6 +67,12 @@ export default function App() {
     );
   };
 
+  const selectRoom = (roomId: string) => {
+    setSelectedRoomId(roomId);
+    setResult(emptyResult());
+    setSubmitted(false);
+  };
+
   const handleCheck = () => {
     if (!selectedRoom) return;
     setSubmitted(true);
@@ -86,14 +93,6 @@ export default function App() {
     setResult(emptyResult());
   };
 
-  const resultStyles = useMemo(() => {
-    if (!submitted) return null;
-    if (result.available) {
-      return 'bg-emerald-50 border-emerald-200 text-emerald-900';
-    }
-    return 'bg-rose-50 border-rose-200 text-rose-900';
-  }, [submitted, result]);
-
   const noRooms = matchingRooms.length === 0;
 
   return (
@@ -111,20 +110,15 @@ export default function App() {
         </header>
 
         {/* Current time */}
-        <section className="mb-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+        <Card>
           <div className="flex items-center gap-2 text-sm text-slate-700">
             <Clock className="h-4 w-4 flex-shrink-0" aria-hidden />
             <span>Current time: <strong>{minutesToHHMM(NOW)}</strong></span>
           </div>
-        </section>
+        </Card>
 
         {/* Filters */}
-        <section className="mb-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-          <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold text-slate-700">
-            <Users className="h-4 w-4 flex-shrink-0" aria-hidden />
-            Requirements
-          </h2>
-
+        <Card title="Requirements" icon={<Users className="h-4 w-4 flex-shrink-0" aria-hidden />}>
           <div>
             <label htmlFor="attendees" className="mb-1 block text-sm font-medium text-slate-700">
               Number of attendees
@@ -178,26 +172,22 @@ export default function App() {
               })}
             </div>
           </fieldset>
-        </section>
+        </Card>
 
         {noRooms ? (
           /* F4: empty state */
-          <section className="mb-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+          <Card>
             <div className="flex flex-col items-center gap-3 py-6 text-center">
               <SearchX className="h-8 w-8 text-slate-400" aria-hidden />
               <p className="text-sm text-slate-600">
                 No rooms match your requirements. Try fewer attendees or less equipment.
               </p>
             </div>
-          </section>
+          </Card>
         ) : (
           <>
             {/* Room selector */}
-            <section className="mb-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-              <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold text-slate-700">
-                <Building2 className="h-4 w-4 flex-shrink-0" aria-hidden />
-                Select a room
-              </h2>
+            <Card title="Select a room" icon={<Building2 className="h-4 w-4 flex-shrink-0" aria-hidden />}>
               <div className="space-y-2">
                 {matchingRooms.map((room) => {
                   const isSelected = room.id === selectedRoomId;
@@ -215,11 +205,7 @@ export default function App() {
                         name="room"
                         className="peer sr-only"
                         checked={isSelected}
-                        onChange={() => {
-                          setSelectedRoomId(room.id);
-                          setResult(emptyResult());
-                          setSubmitted(false);
-                        }}
+                        onChange={() => selectRoom(room.id)}
                       />
                       <span
                         className={`mt-0.5 h-4 w-4 flex-shrink-0 rounded-full border-2 transition-colors ${
@@ -250,15 +236,14 @@ export default function App() {
                   );
                 })}
               </div>
-            </section>
+            </Card>
 
             {/* Selected room bookings */}
             {selectedRoom && (
-              <section className="mb-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-                <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold text-slate-700">
-                  <ListChecks className="h-4 w-4 flex-shrink-0" aria-hidden />
-                  Existing bookings — {selectedRoom.name}
-                </h2>
+              <Card
+                title={`Existing bookings — ${selectedRoom.name}`}
+                icon={<ListChecks className="h-4 w-4 flex-shrink-0" aria-hidden />}
+              >
                 {selectedRoom.bookings.length === 0 ? (
                   <p className="text-sm text-slate-500">No existing bookings.</p>
                 ) : (
@@ -274,43 +259,27 @@ export default function App() {
                     ))}
                   </ul>
                 )}
-              </section>
+              </Card>
             )}
 
             {/* Time window check */}
-            <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-              <h2 className="mb-3 text-sm font-semibold text-slate-700">Check a time window</h2>
-
+            <Card title="Check a time window" className="">
               <div className="space-y-3">
-                <div>
-                  <label htmlFor="start-time" className="mb-1 block text-sm font-medium text-slate-700">
-                    Start time (HH:MM)
-                  </label>
-                  <input
-                    id="start-time"
-                    type="text"
-                    inputMode="numeric"
-                    placeholder="e.g. 11:00"
-                    value={startInput}
-                    onChange={(e) => setStartInput(e.target.value)}
-                    className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-base focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
-                  />
-                </div>
+                <TimeField
+                  id="start-time"
+                  label="Start time (HH:MM)"
+                  placeholder="e.g. 11:00"
+                  value={startInput}
+                  onChange={setStartInput}
+                />
 
-                <div>
-                  <label htmlFor="end-time" className="mb-1 block text-sm font-medium text-slate-700">
-                    End time (HH:MM)
-                  </label>
-                  <input
-                    id="end-time"
-                    type="text"
-                    inputMode="numeric"
-                    placeholder="e.g. 12:00"
-                    value={endInput}
-                    onChange={(e) => setEndInput(e.target.value)}
-                    className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-base focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
-                  />
-                </div>
+                <TimeField
+                  id="end-time"
+                  label="End time (HH:MM)"
+                  placeholder="e.g. 12:00"
+                  value={endInput}
+                  onChange={setEndInput}
+                />
 
                 <p className="text-xs text-slate-500">
                   Max {MAX_DURATION_MINUTES} minutes. Start must be after {minutesToHHMM(NOW)}. Use 24:00 for end of day.
@@ -335,25 +304,8 @@ export default function App() {
                 </div>
               </div>
 
-              {submitted && (
-                <div
-                  role="status"
-                  className={`mt-4 flex items-start gap-2 rounded-lg border px-3 py-3 text-sm ${resultStyles ?? ''}`}
-                >
-                  {result.available ? (
-                    <CheckCircle2 className="mt-0.5 h-5 w-5 flex-shrink-0 text-emerald-600" aria-hidden />
-                  ) : (
-                    <XCircle className="mt-0.5 h-5 w-5 flex-shrink-0 text-rose-600" aria-hidden />
-                  )}
-                  <div>
-                    <p className="font-semibold">
-                      {result.available ? 'Available' : 'Unavailable'}
-                    </p>
-                    <p className="mt-0.5">{result.message}</p>
-                  </div>
-                </div>
-              )}
-            </section>
+              <ResultBanner result={result} submitted={submitted} />
+            </Card>
           </>
         )}
 
