@@ -3,7 +3,8 @@ import { Clock, DoorOpen, CheckCircle2, XCircle, ListChecks } from 'lucide-react
 import {
   canBook,
   minutesToHHMM,
-  parseHHMMWith2400,
+  MAX_DURATION_MINUTES,
+  parseTimeInputs,
   type AvailabilityResult,
   type Booking,
 } from '@/availability';
@@ -26,17 +27,12 @@ export default function App() {
 
   const handleCheck = () => {
     setSubmitted(true);
-    if (startInput.trim() === '' || endInput.trim() === '') {
-      setResult({ available: false, reason: 'empty', message: 'Please enter both a start time and an end time.' });
+    const parsed = parseTimeInputs(startInput, endInput);
+    if ('available' in parsed) {
+      setResult(parsed);
       return;
     }
-    const start = parseHHMMWith2400(startInput);
-    const end = parseHHMMWith2400(endInput);
-    if (start === null || end === null) {
-      setResult({ available: false, reason: 'bad-format', message: 'Times must be in HH:MM format (e.g. 09:30).' });
-      return;
-    }
-    setResult(canBook(start, end, NOW, blocked, bookings));
+    setResult(canBook(parsed.start, parsed.end, NOW, blocked, bookings));
   };
 
   const handleReset = () => {
@@ -149,7 +145,7 @@ export default function App() {
             </div>
 
             <p className="text-xs text-slate-500">
-              Max 120 minutes. Start must be after {minutesToHHMM(NOW)}. Use 24:00 for end of day.
+              Max {MAX_DURATION_MINUTES} minutes. Start must be after {minutesToHHMM(NOW)}. Use 24:00 for end of day.
             </p>
 
             <div className="flex gap-2 pt-1">
